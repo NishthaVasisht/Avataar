@@ -1,7 +1,10 @@
 import * as THREE from "three";
 import { DRACOLoader, GLTF, GLTFLoader } from "three-stdlib";
 import { setCharTimeline, setAllTimeline } from "../../utils/GsapScroll";
-import { decryptFile } from "./decrypt";
+
+// Ready Player Me female avatar (public GLB)
+const AVATAR_URL =
+  "https://models.readyplayer.me/64bfa15f0e72c63d7c3934a6.glb?morphTargets=ARKit&textureAtlas=1024";
 
 const setCharacter = (
   renderer: THREE.WebGLRenderer,
@@ -16,70 +19,30 @@ const setCharacter = (
   const loadCharacter = () => {
     return new Promise<GLTF | null>(async (resolve, reject) => {
       try {
-        let blobUrl: string;
-        let modelSource = "";
+        console.log("👤 Loading female avatar...");
 
-        // Try to load encrypted original character first
-        try {
-          console.log("🔓 Attempting to decrypt original character model...");
-          const decryptedBytes = await decryptFile(
-            "/models/character.enc?v=2",
-            "MyCharacter12"
-          );
-          // ✅ Fix: specify GLB MIME type so GLTFLoader parses as binary, not JSON
-          blobUrl = URL.createObjectURL(
-            new Blob([decryptedBytes], { type: "model/gltf-binary" })
-          );
-          modelSource = "original";
-          console.log("✅ Original encrypted model loaded!");
-        } catch (error) {
-          console.warn("⚠️ Encrypted model not found, falling back to your avatar...");
-          blobUrl = "/models/my-avatar.glb";
-          modelSource = "your-avatar";
-        }
-
-        let character: THREE.Object3D;
         loader.load(
-          blobUrl,
+          AVATAR_URL,
           async (gltf) => {
-            character = gltf.scene;
-            
-            // Scale appropriately based on model
-            if (modelSource === "original") {
-              character.scale.set(1, 1, 1);
-            } else {
-              character.scale.set(1.2, 1.2, 1.2); // Your avatar scale
-            }
-            
-            character.position.set(0, 0, 0);
-            
-            await renderer.compileAsync(character, camera, scene);
-            
-            console.log(`✅ Character loaded from: ${modelSource}`);
-            console.log(`📦 Model children count: ${character.children.length}`);
+            const character = gltf.scene;
 
+            // Match original repo scale & position so she fills the canvas correctly
+            character.scale.set(9, 9, 9);
+            character.position.set(0, 3.5, 0);
+            character.rotation.y = 0;
+
+            await renderer.compileAsync(character, camera, scene);
+
+            console.log("✅ Female avatar loaded!");
+            console.log(`📦 Model children: ${character.children.length}`);
+
+            // Log all mesh names for debugging
             character.traverse((child: any) => {
               if (child.isMesh) {
-                const mesh = child as THREE.Mesh;
-
-                // Change clothing colors
-                if (mesh.material) {
-                  if (mesh.name === "BODY.SHIRT") {
-                    const newMat = (mesh.material as THREE.Material).clone() as THREE.MeshStandardMaterial;
-                    newMat.color = new THREE.Color("#8B4513");
-                    mesh.material = newMat;
-                    console.log("✅ Shirt colored");
-                  } else if (mesh.name === "Pant") {
-                    const newMat = (mesh.material as THREE.Material).clone() as THREE.MeshStandardMaterial;
-                    newMat.color = new THREE.Color("#000000");
-                    mesh.material = newMat;
-                    console.log("✅ Pants colored");
-                  }
-                }
-
+                console.log("📌 Mesh:", child.name);
                 child.castShadow = true;
                 child.receiveShadow = true;
-                mesh.frustumCulled = true;
+                (child as THREE.Mesh).frustumCulled = true;
               }
             });
 
@@ -87,29 +50,16 @@ const setCharacter = (
             setCharTimeline(character, camera);
             setAllTimeline();
 
-            // Adjust feet if they exist
-            const footR = character.getObjectByName("footR");
-            const footL = character.getObjectByName("footL");
-            
-            if (footR) footR.position.y = 3.36;
-            if (footL) footL.position.y = 3.36;
-
-            if (!footR || !footL) {
-              console.warn("⚠️ Foot bones not found - model may not have them");
-            }
-
             dracoLoader.dispose();
-
-            // Revoke blob URL after load to free memory
-            if (modelSource === "original") URL.revokeObjectURL(blobUrl);
           },
           (progress) => {
-            const percentComplete = (progress.loaded / progress.total) * 100;
-            console.log(`📥 Loading: ${percentComplete.toFixed(0)}%`);
+            if (progress.total > 0) {
+              const pct = ((progress.loaded / progress.total) * 100).toFixed(0);
+              console.log(`📥 Loading: ${pct}%`);
+            }
           },
           (error) => {
-            console.error("❌ Error loading character:", error);
-            if (modelSource === "original") URL.revokeObjectURL(blobUrl);
+            console.error("❌ Error loading avatar:", error);
             reject(error);
           }
         );
