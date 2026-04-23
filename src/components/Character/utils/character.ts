@@ -48,11 +48,11 @@ const setCharacter = (
 
         const character = gltf.scene;
 
-        // Scale restored to 5.5 (was perfect size)
-        // Position Y raised to 8.5 so head/face is visible at top of frame
-        // Camera is at (0, 13.1, 24.7) FOV 14.5
+        // Camera: FOV 14.5, position (0, 13.1, 24.7)
+        // Scale 5.5 is correct size
+        // Y 13.5 = camera Y level, so face aligns with center of viewport
         character.scale.set(5.5, 5.5, 5.5);
-        character.position.set(0, 8.5, 0);
+        character.position.set(0, 13.5, 0);
         character.rotation.y = 0;
 
         await renderer.compileAsync(character, camera, scene);
