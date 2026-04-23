@@ -27,13 +27,11 @@ const setCharacter = (
     return new Promise<GLTF | null>(async (resolve, reject) => {
       try {
         let gltf: GLTF | null = null;
-        let loadedUrl = "";
 
         for (const url of AVATAR_URLS) {
           try {
             console.log(`🔄 Trying: ${url}`);
             gltf = await tryLoadUrl(url);
-            loadedUrl = url;
             console.log(`✅ Loaded from: ${url}`);
             break;
           } catch (e) {
@@ -48,11 +46,11 @@ const setCharacter = (
 
         const character = gltf.scene;
 
-        // Camera: FOV 14.5, position (0, 13.1, 24.7)
-        // Scale 5.5 is correct size
-        // Y 13.5 = camera Y level, so face aligns with center of viewport
+        // Y=13.5 showed only boots (too high)
+        // Y=8.5 showed chest (too low)
+        // Y=11 should show face + upper body nicely
         character.scale.set(5.5, 5.5, 5.5);
-        character.position.set(0, 13.5, 0);
+        character.position.set(0, 11, 0);
         character.rotation.y = 0;
 
         await renderer.compileAsync(character, camera, scene);
