@@ -2,8 +2,9 @@ import * as THREE from "three";
 import { DRACOLoader, GLTF, GLTFLoader } from "three-stdlib";
 import { setCharTimeline, setAllTimeline } from "../../utils/GsapScroll";
 
-// Public female avatar GLBs — tries each in order until one loads
+// Public GLB fallback URLs — tried in order
 const AVATAR_URLS = [
+  "/models/my-avatar.glb",
   "https://threejs.org/examples/models/gltf/Soldier.glb",
 ];
 
@@ -17,26 +18,18 @@ const setCharacter = (
   dracoLoader.setDecoderPath("/draco/");
   loader.setDRACOLoader(dracoLoader);
 
-  const tryLoadUrl = (url: string): Promise<GLTF> => {
-    return new Promise((resolve, reject) => {
-      loader.load(
-        url,
-        (gltf) => resolve(gltf),
-        undefined,
-        (err) => reject(err)
-      );
+  const tryLoadUrl = (url: string): Promise<GLTF> =>
+    new Promise((resolve, reject) => {
+      loader.load(url, resolve, undefined, reject);
     });
-  };
 
   const loadCharacter = () => {
     return new Promise<GLTF | null>(async (resolve, reject) => {
       try {
-        // Try local avatar first, then fallback CDN URLs
-        const urlsToTry = ["/models/my-avatar.glb", ...AVATAR_URLS];
         let gltf: GLTF | null = null;
         let loadedUrl = "";
 
-        for (const url of urlsToTry) {
+        for (const url of AVATAR_URLS) {
           try {
             console.log(`🔄 Trying: ${url}`);
             gltf = await tryLoadUrl(url);
@@ -55,16 +48,11 @@ const setCharacter = (
 
         const character = gltf.scene;
 
-        // Scale & position tuned for camera: FOV 14.5, pos (0, 13.1, 24.7)
-        if (loadedUrl.includes("my-avatar")) {
-          character.scale.set(9, 9, 9);
-          character.position.set(0, 3.5, 0);
-        } else {
-          // Soldier.glb is ~1.8m tall — scale up to match viewport
-          character.scale.set(5.5, 5.5, 5.5);
-          character.position.set(0, 2.8, 0);
-        }
-
+        // Camera is at (0, 13.1, 24.7) with FOV 14.5
+        // Soldier.glb is ~1.8m tall — scale to ~16 units tall to fill frame nicely
+        // Position Y negative so feet are near bottom, head near top
+        character.scale.set(3, 3, 3);
+        character.position.set(0, -2, 0);
         character.rotation.y = 0;
 
         await renderer.compileAsync(character, camera, scene);
