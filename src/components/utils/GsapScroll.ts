@@ -1,14 +1,17 @@
 import * as THREE from "three";
 import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 export function setCharTimeline(
   character: THREE.Object3D<THREE.Object3DEventMap> | null,
   camera: THREE.PerspectiveCamera
 ) {
-  let intensity: number = 0;
-  setInterval(() => {
-    intensity = Math.random();
-  }, 200);
+  if (!character) {
+    console.warn("❌ Character is null");
+    return;
+  }
 
   const tl1 = gsap.timeline({
     scrollTrigger: {
@@ -19,6 +22,7 @@ export function setCharTimeline(
       invalidateOnRefresh: true,
     },
   });
+
   const tl2 = gsap.timeline({
     scrollTrigger: {
       trigger: ".about-section",
@@ -28,6 +32,7 @@ export function setCharTimeline(
       invalidateOnRefresh: true,
     },
   });
+
   const tl3 = gsap.timeline({
     scrollTrigger: {
       trigger: ".whatIDO",
@@ -38,46 +43,8 @@ export function setCharTimeline(
     },
   });
 
-  let screenLight: any = null;
-  let monitor: any = null;
-
-  // Guard — only run if character exists
-  if (!character) {
-    console.warn("character is null — skipping setCharTimeline setup");
-    return;
-  }
-
-  character.children.forEach((object: any) => {
-    if (object.name === "Plane004") {
-      object.children.forEach((child: any) => {
-        child.material.transparent = true;
-        child.material.opacity = 0;
-        if (child.material.name === "Material.018") {
-          monitor = child;
-          child.material.color.set("#FFFFFF");
-        }
-      });
-    }
-    if (object.name === "screenlight") {
-      object.material.transparent = true;
-      object.material.opacity = 0;
-      object.material.emissive.set("#B0F5EA");
-      gsap.timeline({ repeat: -1, repeatRefresh: true }).to(object.material, {
-        emissiveIntensity: () => intensity * 8,
-        duration: () => Math.random() * 0.6,
-        delay: () => Math.random() * 0.1,
-      });
-      screenLight = object;
-    }
-  });
-
-  // Guard — spine005 may not exist in new GLB
-  let neckBone = character.getObjectByName("spine005") || null;
-  if (!neckBone) {
-    console.warn("spine005 bone not found in my-avatar.glb — neck animation skipped");
-  }
-
   if (window.innerWidth > 1024) {
+    // Timeline 1: Landing to About
     tl1
       .fromTo(character.rotation, { y: 0 }, { y: 0.7, duration: 1 }, 0)
       .to(camera.position, { z: 22 }, 0)
@@ -86,6 +53,7 @@ export function setCharTimeline(
       .to(".landing-container", { y: "40%", duration: 0.8 }, 0)
       .fromTo(".about-me", { y: "-50%" }, { y: "0%" }, 0);
 
+    // Timeline 2: About section
     tl2
       .to(
         camera.position,
@@ -100,35 +68,7 @@ export function setCharTimeline(
         { pointerEvents: "none", x: "-12%", delay: 2, duration: 5 },
         0
       )
-      .to(character.rotation, { y: 0.92, x: 0.12, delay: 3, duration: 3 }, 0);
-
-    // Only animate neckBone if it exists
-    if (neckBone) {
-      tl2.to(neckBone.rotation, { x: 0.6, delay: 2, duration: 3 }, 0);
-    }
-
-    // Only animate monitor if it exists in new GLB
-    if (monitor) {
-      tl2
-        .to(monitor.material, { opacity: 1, duration: 0.8, delay: 3.2 }, 0)
-        .fromTo(
-          monitor.position,
-          { y: -10, z: 2 },
-          { y: 0, z: 0, delay: 1.5, duration: 3 },
-          0
-        );
-    } else {
-      console.warn("Plane004/monitor not found in my-avatar.glb — monitor animation skipped");
-    }
-
-    // Only animate screenLight if it exists in new GLB
-    if (screenLight) {
-      tl2.to(screenLight.material, { opacity: 1, duration: 0.8, delay: 4.5 }, 0);
-    } else {
-      console.warn("screenlight not found in my-avatar.glb — screenlight animation skipped");
-    }
-
-    tl2
+      .to(character.rotation, { y: 0.92, x: 0.12, delay: 3, duration: 3 }, 0)
       .fromTo(
         ".what-box-in",
         { display: "none" },
@@ -142,6 +82,7 @@ export function setCharTimeline(
         0.3
       );
 
+    // Timeline 3: WhatIDo
     tl3
       .fromTo(
         ".character-model",
@@ -210,13 +151,6 @@ export function setAllTimeline() {
       ".career-section",
       { y: 0 },
       { y: "20%", duration: 0.5, delay: 0.2 },
-      0
-    );
-  } else {
-    careerTimeline.fromTo(
-      ".career-section",
-      { y: 0 },
-      { y: 0, duration: 0.5, delay: 0.2 },
       0
     );
   }

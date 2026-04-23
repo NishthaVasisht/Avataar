@@ -20,6 +20,7 @@ const Scene = () => {
   const { setLoading } = useLoading();
 
   const [character, setChar] = useState<THREE.Object3D | null>(null);
+  
   useEffect(() => {
     if (canvasDiv.current) {
       let rect = canvasDiv.current.getBoundingClientRect();
@@ -81,7 +82,10 @@ const Scene = () => {
       const onMouseMove = (event: MouseEvent) => {
         handleMouseMove(event, (x, y) => (mouse = { x, y }));
       };
-      let debounce: number | undefined;
+      
+      // FIX: Use NodeJS.Timeout type instead of number
+      let debounce: NodeJS.Timeout | undefined;
+      
       const onTouchStart = (event: TouchEvent) => {
         const element = event.target as HTMLElement;
         debounce = setTimeout(() => {
@@ -101,11 +105,13 @@ const Scene = () => {
       document.addEventListener("mousemove", (event) => {
         onMouseMove(event);
       });
+      
       const landingDiv = document.getElementById("landingDiv");
       if (landingDiv) {
         landingDiv.addEventListener("touchstart", onTouchStart);
         landingDiv.addEventListener("touchend", onTouchEnd);
       }
+      
       const animate = () => {
         requestAnimationFrame(animate);
         if (headBone) {
@@ -125,9 +131,11 @@ const Scene = () => {
         }
         renderer.render(scene, camera);
       };
+      
       animate();
+      
       return () => {
-        clearTimeout(debounce);
+        if (debounce) clearTimeout(debounce);
         scene.clear();
         renderer.dispose();
         window.removeEventListener("resize", () =>

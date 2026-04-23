@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { DRACOLoader, GLTF, GLTFLoader } from "three-stdlib";
 import { setCharTimeline, setAllTimeline } from "../../utils/GsapScroll";
+import { decryptFile } from "./decrypt";
 
 const setCharacter = (
   renderer: THREE.WebGLRenderer,
@@ -15,29 +16,61 @@ const setCharacter = (
   const loadCharacter = () => {
     return new Promise<GLTF | null>(async (resolve, reject) => {
       try {
-        // Removed decryptFile — my-avatar.glb is loaded directly
-        const blobUrl = "/models/my-avatar.glb";
+        let blobUrl: string;
+        let modelSource = "";
+
+        // Try to load encrypted original character first
+        try {
+          console.log("🔓 Attempting to decrypt original character model...");
+          const encryptedBlob = await decryptFile(
+            "/models/character.enc?v=2",
+            "MyCharacter12"
+          );
+          blobUrl = URL.createObjectURL(new Blob([encryptedBlob]));
+          modelSource = "original";
+          console.log("✅ Original encrypted model loaded!");
+        } catch (error) {
+          console.warn("⚠️ Encrypted model not found, falling back to your avatar...");
+          blobUrl = "/models/my-avatar.glb";
+          modelSource = "your-avatar";
+        }
 
         let character: THREE.Object3D;
         loader.load(
           blobUrl,
           async (gltf) => {
             character = gltf.scene;
+            
+            // Scale appropriately based on model
+            if (modelSource === "original") {
+              character.scale.set(1, 1, 1);
+            } else {
+              character.scale.set(1.2, 1.2, 1.2); // Your avatar scale
+            }
+            
+            character.position.set(0, 0, 0);
+            
             await renderer.compileAsync(character, camera, scene);
+            
+            console.log(`✅ Character loaded from: ${modelSource}`);
+            console.log(`📦 Model children count: ${character.children.length}`);
+
             character.traverse((child: any) => {
               if (child.isMesh) {
                 const mesh = child as THREE.Mesh;
 
-                // Change clothing colors to match site theme
+                // Change clothing colors
                 if (mesh.material) {
-                  if (mesh.name === "BODY.SHIRT") { // The shirt mesh
+                  if (mesh.name === "BODY.SHIRT") {
                     const newMat = (mesh.material as THREE.Material).clone() as THREE.MeshStandardMaterial;
                     newMat.color = new THREE.Color("#8B4513");
                     mesh.material = newMat;
+                    console.log("✅ Shirt colored");
                   } else if (mesh.name === "Pant") {
                     const newMat = (mesh.material as THREE.Material).clone() as THREE.MeshStandardMaterial;
                     newMat.color = new THREE.Color("#000000");
                     mesh.material = newMat;
+                    console.log("✅ Pants colored");
                   }
                 }
 
@@ -51,28 +84,31 @@ const setCharacter = (
             setCharTimeline(character, camera);
             setAllTimeline();
 
-            // Guard — footR and footL may not exist in new GLB
-            const footR = character.getObjectByName("footR") || character.getObjectByName("mixamorig:RightFoot");
-const footL = character.getObjectByName("footL") || character.getObjectByName("mixamorig:LeftFoot");
+            // Adjust feet if they exist
+            const footR = character.getObjectByName("footR");
+            const footL = character.getObjectByName("footL");
+            
             if (footR) footR.position.y = 3.36;
             if (footL) footL.position.y = 3.36;
-            if (!footR || !footL) {
-              console.warn("footR/footL bones not found in my-avatar.glb — skipping foot position");
-            }
 
-            // Monitor scale is handled by GsapScroll.ts animations
+            if (!footR || !footL) {
+              console.warn("⚠️ Foot bones not found - model may not have them");
+            }
 
             dracoLoader.dispose();
           },
-          undefined,
+          (progress) => {
+            const percentComplete = (progress.loaded / progress.total) * 100;
+            console.log(`📥 Loading: ${percentComplete.toFixed(0)}%`);
+          },
           (error) => {
-            console.error("Error loading GLTF model:", error);
+            console.error("❌ Error loading character:", error);
             reject(error);
           }
         );
       } catch (err) {
         reject(err);
-        console.error(err);
+        console.error("❌ Error in setCharacter:", err);
       }
     });
   };

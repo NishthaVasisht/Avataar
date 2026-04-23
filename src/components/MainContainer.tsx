@@ -8,6 +8,7 @@ import Navbar from "./Navbar";
 import SocialIcons from "./SocialIcons";
 import WhatIDo from "./WhatIDo";
 import Work from "./Work";
+import AvatarSwitcher from "./AvatarSwitcher";
 import setSplitText from "./utils/splitText";
 
 const TechStack = lazy(() => import("./TechStack"));
@@ -29,11 +30,17 @@ const MainContainer = ({ children }: PropsWithChildren) => {
     };
   }, [isDesktopView]);
 
+  const handleAvatarSwitch = (avatar: "my-avatar" | "character") => {
+    console.log(`Switching to avatar: ${avatar}`);
+    // You can add additional logic here if needed
+  };
+
   return (
     <div className="container-main">
       <Cursor />
       <Navbar />
       <SocialIcons />
+      <AvatarSwitcher onSwitch={handleAvatarSwitch} />
       {isDesktopView && children}
       <div id="smooth-wrapper">
         <div id="smooth-content">
