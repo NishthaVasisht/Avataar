@@ -46,11 +46,12 @@ const setCharacter = (
 
         const character = gltf.scene;
 
-        // Y=13.5 showed only boots (too high)
-        // Y=8.5 showed chest (too low)
-        // Y=11 should show face + upper body nicely
+        // Soldier.glb is ~1.8m tall at scale 1
+        // At scale 5.5 it is ~9.9 units tall
+        // Origin is at FEET. Camera is at Y=13.1
+        // So to show face: feet at Y=4, head at Y=4+9.9=13.9 ≈ camera Y ✓
         character.scale.set(5.5, 5.5, 5.5);
-        character.position.set(0, 11, 0);
+        character.position.set(0, 4, 0);
         character.rotation.y = 0;
 
         await renderer.compileAsync(character, camera, scene);
