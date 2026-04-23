@@ -22,11 +22,14 @@ const setCharacter = (
         // Try to load encrypted original character first
         try {
           console.log("🔓 Attempting to decrypt original character model...");
-          const encryptedBlob = await decryptFile(
+          const decryptedBytes = await decryptFile(
             "/models/character.enc?v=2",
             "MyCharacter12"
           );
-          blobUrl = URL.createObjectURL(new Blob([encryptedBlob]));
+          // ✅ Fix: specify GLB MIME type so GLTFLoader parses as binary, not JSON
+          blobUrl = URL.createObjectURL(
+            new Blob([decryptedBytes], { type: "model/gltf-binary" })
+          );
           modelSource = "original";
           console.log("✅ Original encrypted model loaded!");
         } catch (error) {
@@ -96,6 +99,9 @@ const setCharacter = (
             }
 
             dracoLoader.dispose();
+
+            // Revoke blob URL after load to free memory
+            if (modelSource === "original") URL.revokeObjectURL(blobUrl);
           },
           (progress) => {
             const percentComplete = (progress.loaded / progress.total) * 100;
@@ -103,6 +109,7 @@ const setCharacter = (
           },
           (error) => {
             console.error("❌ Error loading character:", error);
+            if (modelSource === "original") URL.revokeObjectURL(blobUrl);
             reject(error);
           }
         );
