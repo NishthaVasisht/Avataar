@@ -48,11 +48,11 @@ const setCharacter = (
 
         const character = gltf.scene;
 
-        // Camera is at (0, 13.1, 24.7) with FOV 14.5
-        // Soldier.glb is ~1.8m tall — scale to ~16 units tall to fill frame nicely
-        // Position Y negative so feet are near bottom, head near top
-        character.scale.set(3, 3, 3);
-        character.position.set(0, -2, 0);
+        // Scale restored to 5.5 (was perfect size)
+        // Position Y raised to 8.5 so head/face is visible at top of frame
+        // Camera is at (0, 13.1, 24.7) FOV 14.5
+        character.scale.set(5.5, 5.5, 5.5);
+        character.position.set(0, 8.5, 0);
         character.rotation.y = 0;
 
         await renderer.compileAsync(character, camera, scene);
